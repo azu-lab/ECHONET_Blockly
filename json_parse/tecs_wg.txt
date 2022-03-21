@@ -1,0 +1,327 @@
+2021/04/12
+
+{"edt":"0x41", "state":{"ja":"電球色", "en":"Incandescent lamp color"}}
+{"edt":"0x42", "state":{"ja":"白色", "en":"White"}}
+↓
+"Incandescent lamp color"
+↓
+case 0x41:
+    sLight_IncandescentLampColor();
+case 0x42;
+    sLight_White();
+
+
+"propertyName":{"ja":"光色設定", "en":"Light color setting"},
+"data":{
+    {"edt":"0x41", "state":{"ja":"電球色", "en":"Incandescent lamp color"}}
+    {"edt":"0x42", "state":{"ja":"白色", "en":"White"}}
+↓
+関数名を作成："Incandescent lamp color"→SetIncandescentLampColor
+関数名を作成："White"→SetWhite
+↓
+void LightColorSetting_prop_set(const EPRPINIB *item, ...)
+{
+switch(){
+case 0x41:
+    cLight_SetIncandescentLampColor();
+    break;
+case 0x42;
+    cLight_SetWhite();
+    break;
+default:
+    break;
+}
+
+
+2021/05/17
+関数：
+void propertyName_prop_set()
+{
+    cClassName_stateName()
+}
+
+CDL: /json_parse/gen
+signature sClassName{
+    void setPropertyName_stateName();
+};
+
+コンフィギュレーションファイル：
+echonet_main.cfg　main.cfg
+    asp3_dcre/cfg/pass1.rb --> cfg1_out.c (static apiと番号を作る)
+    asp3_dcre/cfg/pass2.rb --> kernel_cfg.c　kernel_cfg.h（タスク関数管理）
+    ntshell/echonet/echonet.trb --> echonet_cfg.c  echonet_cfg.h　(プロパティを配列にする)
+
+cfgで呼び出す関数名ルールを決める (echonet.trbを書き換え？)
+    例：(EPRP_SETTER *)onoff_prop_set(){
+        eLighting_on(){};
+        eLighting_off(){};
+    }
+
+    分ける場合：
+        (EPRP_SETTER *)on_prop_set　(EPRP_SETTER *)off_prop_set  
+        (EPRP_SETTER *)on_prop_get (EPRP_SETTER *)off_prop_get
+
+    cfg: operatingStatus_prop_set()
+    .c 
+    operatingStatus_prop_set(){ 
+    case: 0x30
+    eLighting_on();
+    case: 0x31
+    eLighting_off();
+    }
+
+cfgを生成する
+cfgで呼び出す関数⇒ sGeneralLightingを呼び出すセルタイプを生成する...
+セルタイプを定義する CDL を生成する
+このセルタイプのセルタイプコード (C言語) を生成する
+    eClassName_stateName() {};
+
+json->plugin->echonet_main.cfg(プロパティを書き込む),echonet_main.c(関数名（cfgに定義しておく）を生成した、tecs呼び口関数を書き入れ)
+    
+echonet_main.cfg-cfg->echonet_cfg.c(コンフィギュレータ)
+
+json->CDL(get関数を追加する)->tDevices.c (tecsgen)
+
+singleton(呼び口関数名)
+--------------------------------
+新しいcfgファイルを作る場合
+    echonetオブジェクトを定義するフォーマットが変わったら、コンフィギュレータから読み込み時pass1とpass2はどうする
+prop_set prop_getの関数名を変える時　
+/echonet_app_config.h
+#define ECN_USER_DATA_PROP_SET
+#define ECN_USER_DATA_PROP_GET
+
+一般照明のサンプルプログラム
+
+WSLでmrubyビルド,sudo apt install gcc-arm-none-eabi
+2021/05/30
+cfg的生成器先生成nodeprofile的部分，再遍历其他的设备名字
+2021/06/01
+todo: cdl 里面只生成required, 判断条件改为get是否是renquired
+2021/06/10
+todo: 再cdl中添加onoff和alarm,在echonet_main.c中添加onoff和alarm函数
+2021/06/11
+onoff_prop_set相当于是中间件的callback函数，如果把函数名改成TECS的格式，那么相当于修改cfg里面的函数名，
+
+2021/06/21
+可以尝试把callback函数放到tECNLGeneralLighting.c中build
+まずは動く
+tGeneralLighting pointerが必要なら、エラーが出るかもしれません
+cfg変更、exinf-->p_cellcb
+
+2021/07/19
+サンプルプログラム: GeneralLighting 実装確認(on/off設定)
+CFGファイルを生成するスクリプトを修正しました
+
+
+2021/08/23
+ICESSに投稿する:(結果待ち　10月)
+ECHONET Lite Framework based on Embedded Component Systems with Visual Programming
+
+SWEST23に投稿する:(採用　09/02発表)
+ビジュアルプログラミング対応したECHONET Liteフレームワーク
+ポスターを作る
+
+ハンズオン: mruby+TECS on TOPPERS BASE PLATFORM
+sample1をROM化してビルド : b_sample1_rom
+mruby-3.0.0ビルド
+mruby VM を組み込む : /c_mruby
+(gr-peach)
+
+echonet-tecs
+rbスクリプト：デバイス名前でファイルを生成する --- プラグインにするか? option parser
+             $ ruby ○○_gen.rb　"General Lighting" (defaultはrequired, 他のコマンドでoptionalプロパティを生成する)
+             $ ruby ○○_gen.rb   ○○/○○.json "className"  
+                      
+             all_gen.rb
+             $ ruby all_gen.rb "General Lighting" (cannot)
+
+    (あった方がいい)$ ruby ○○_gen.rb　"General Lighting" optionalPropertyName
+
+    (実用性改善 : blocklyからデバイスがあるプロパティを示す)
+
+    デバイスを探す--->プロパティを選択する--->ファイルを生成する
+
+2021/09/27
+SWEST23 (09/02)
+    gather.town 
+M2中間発表 (09/21)
+rbスクリプト：
+    Usage: $ ruby ○○_gen.rb src_json gen_dir [className] [propertyName]
+
+    1.ディフォルト
+    $ ruby ○○_gen.rb src_json gen_dir
+    全てのデバイスを指定したディレクトリで生成する(生成したプロパティはrequiredのみ)
+
+    2. [className] デバイス名を指定する(生成したプロパティはrequiredのみ)
+    $ ruby ○○_gen.rb src_json gen_dir  -c "className1" "className2"
+
+    3. [propertyName] プロパティ名を指定する、前はclassNameが必要
+    $ ruby ○○_gen.rb src_json gen_dir -c "className1" -p "propertyName1" "propertyName2"
+
+
+
+    できた：デバイス名を指定する
+    devdesc_json_fname = ARGV[0]
+    gen_dir = ARGV[1]
+    dev = ARGV[2,ARGV.length]
+
+    デバイス名でファイルを生成する(生成したプロパティはrequiredのみ)
+    $ ruby ○○_gen.rb src_json gen_dir  "className1" "className2"
+
+    optionalプロパティを指定する
+    $ ruby ○○_gen.rb src_json gen_dir -c "className1" -p "propertyName1" "propertyName2"
+    
+
+2021/10/25(月) TOPPERS開発者会議TECS WG の最新研究  14:40-15:40 
+
+2021/11/22
+
+コードジェネレータ.cfg .c .h 対応した
+APRIS 論文採択 11/29ポスターセッション発表
+修論：
+    blockly : 
+        簡単なユースケース:
+        実用性：UI 、デバイス検索
+        評価方法：system usability scale (SUS)
+
+
+2021/12/20
+APRIS ポスター発表
+論文誌ECTI-CIT 合格した ECHONET Lite Framework Based on Embedded Component Systems
+情報処理学会全国大会 投稿締め切り2022/01/07 https://www.ipsj.or.jp/event/taikai/84/index.html
+
+修論評価：ユーザインタフェースの実用性
+    基準：system usability scale (SUS)
+    方法：ユーザアンケート
+    1.ブロックを日本語化 
+    2.localからwebに移植
+
+    TODO:
+    3.使い方の説明動画
+    4.アンケートの質問を作る 15~20, 調査対象 20人
+    参考:https://qiqumo.jp/
+
+    アンケート1版：https://enq.qiqumo.jp/q/OGJzekhxWXhtdU1Tc2VaS3pUZFNRdz09
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+关于blockly:
+
+有单独的块set用来连接操作
+
+有集合的块trigger-action用来组成一个大的函数，插入的块假设名字是[ON] [OFF]
+
+[ON] [OFF]默认是字符串变量（有应答，有操作指令）
+
+function setProperty(ipData,msg) 
+{
+    send (ipData,msg)
+}
+
+function getProperty(ipData,msg)
+{
+    msg1 = msg 去掉后面几位
+    msg2 = msg 后面几位
+    send(msg1)
+    msg3 = 接受的信息
+    msg4 = 接受的信息的后面几位
+    if ( msg4 = msg2 )
+        return true
+    else
+        return false
+}
+
+规则
+案例：
+
+逻辑：以向左滑动为例
+先找到最左边的cell（与之相连的左侧cell为null）
+    判断最左边的cell的fill是否是null
+        如果是null
+            cell = cell.right 重新判断是否为null
+        如果不是null
+            nextcell = cell.right
+                判断nextcell是否是null
+                    如果是null
+                        nextcell = nextcell.right 
+                        判断nextcell是否为null
+                    如果不是null
+                        if(cell == nextcell)
+                        {
+                            cell.fill += nextcell.fill;
+                            destory(nextcell.fill);
+                        }
+                        else
+                        {
+                            cell = nextcell;
+                            nextcell = nextcell.right;
+                            判断nextcell是否是null
+                        }
+
+function slideLeft()
+{
+    if(cell.left != null )
+        return;
+    nextcell = cell.right;
+    JudgeRightCell(nextcell);
+}
+
+function JudgeRightCell(nextcell)
+{
+    if(nextcell == null)
+    {
+        nextcell = nextcell.right;
+        JudgeRightCell(nextcell);
+    }
+    else
+    {
+        if(cell == nextcell)
+        {
+            cell.fill += nextcell.fill;
+            nextcell.fill = nextcell.right; //
+
+        }
+        else
+        {
+            cell = nextcell;
+            nextcell = nextcell.right;
+            JudgeRightCell(nextcell);
+        }
+    }
+}
